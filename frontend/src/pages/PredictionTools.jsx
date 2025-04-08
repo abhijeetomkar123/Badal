@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { predictGeneticCancer, predictSkinCancer } from '../services/api';
 
+
 const PredictionTools = () => {
   const [skinCancerData, setSkinCancerData] = useState({
     image: null,
@@ -10,6 +11,7 @@ const PredictionTools = () => {
     loading: false,
     error: ''
   });
+const [prediction,setPrediction]= useState(null)
 
   const [geneticData, setGeneticData] = useState({
     file: null,
@@ -51,24 +53,44 @@ const PredictionTools = () => {
 
   const predictSkinCancerHandler = async (e) => {
     e.preventDefault();
-    setSkinCancerData({ ...skinCancerData, loading: true, error: '' });
-
+    
+    // Use functional update to avoid stale state
+    setSkinCancerData(prev => ({
+      ...prev,
+      loading: true,
+      error: ''
+    }));
+  
     try {
-      const prediction = await predictSkinCancer(skinCancerData.image);
-      setSkinCancerData({
-        ...skinCancerData,
-        prediction,
+      const formData = new FormData();
+      formData.append('file', skinCancerData.image);
+      const prediction = await predictSkinCancer(formData);
+      
+      console.log('API Response:', prediction); // Debug the response structure
+      setPrediction(prediction)
+      setSkinCancerData(prev => ({
+        ...prev,
+        prediction: {
+          type: prediction.type || 'Unknown',
+          confidence: prediction.confidence || 0, // Changed from probability
+          risk_level: prediction.risk_level || 'Unknown',
+          recommendations: prediction.recommendations || [], // Ensure array exists
+          // Include any other fields from API
+          ...prediction
+        },
         loading: false
-      });
+      }));
+      
     } catch (err) {
-      setSkinCancerData({
-        ...skinCancerData,
-        error: 'Failed to process image. Please try again.',
+      setSkinCancerData(prev => ({
+        ...prev,
+        error: err.message || 'Failed to process image. Please try again.',
         loading: false
-      });
+      }));
     }
   };
 
+console.log(prediction)
   const handleGeneticDataUpload = async (e) => {
     e.preventDefault();
     if (!geneticData.file) {
@@ -106,6 +128,7 @@ const PredictionTools = () => {
         <div className="prediction-section">
           <h2>Skin Cancer Detection</h2>
           <form onSubmit={predictSkinCancerHandler} className="prediction-form">
+
             <div className="form-group">
               <label htmlFor="skin-image">Upload Skin Lesion Image</label>
               <input
@@ -141,21 +164,21 @@ const PredictionTools = () => {
               <div className="error-message">{skinCancerData.error}</div>
             )}
 
-            {skinCancerData.prediction && (
+            {prediction && (
               <div className="prediction-result">
                 <h3>Analysis Results</h3>
                 <p className="prediction-type">
-                  Type: <span>{skinCancerData.prediction.type}</span>
+                  Type: <span>{prediction.prediction.type}</span>
                 </p>
                 <p className="prediction-probability">
-                  Confidence: <span>{(skinCancerData.prediction.probability * 100).toFixed(1)}%</span>
+                  Confidence: <span>{prediction.prediction.confidence}%</span>
                 </p>
                 <div className="recommendations">
                   <h4>Recommendations:</h4>
                   <ul>
-                    {skinCancerData.prediction.recommendations.map((rec, index) => (
-                      <li key={index}>{rec}</li>
-                    ))}
+                  {prediction.prediction?.recommendations?.map((rec, index) => (
+            <li key={index}>{rec}</li>
+)) || <li>No recommendations available</li>}
                   </ul>
                 </div>
               </div>

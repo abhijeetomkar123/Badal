@@ -151,11 +151,13 @@ export const uploadGeneticData = async (patientId, formData) => {
 };
 
 // ML Model API calls
-export const predictSkinCancer = async (formData) => {
+export const predictSkinCancer = async (imageFile) => {  // Changed parameter name to avoid confusion
+
+  
   try {
     const response = await fetch(`${API_BASE_URL}/ml/predict/skin`, {
       method: 'POST',
-      body: formData,
+      body: imageFile,
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -168,7 +170,8 @@ export const predictSkinCancer = async (formData) => {
     }
 
     return await response.json();
-  } catch (error) {
+  } 
+  catch (error) {
     console.error('Error in skin cancer prediction:', error);
     throw error;
   }
